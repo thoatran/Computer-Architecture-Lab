@@ -1,0 +1,292 @@
+--------------------------------------------------------------------------------
+Câu hỏi 0:
+--------------------------------------------------------------------------------
+Câu hỏi: Các từ khóa?
+
+Giải pháp:
+.data <addr> 	Chỉ định vùng địa chỉ của đoạn dữ liệu, nơi bắt đầu khai báo 
+                các biến. Có thể ghi rõ, hoặc không chỉ định <addr>
+.text <addr>	Chỉ định vùng địa chỉ của đoạn text, nơi bắt đầu khai báo các lệnh
+		Có thể ghi rõ, hoặc không chỉ định <addr>
+.globl <symbol>	Cho biết nhãn, thủ tục, hàm là toàn cục và có thể được tham 
+		chiếu từ file khác.
+.set noreorder	Code được viết thế nào thì cứ thế biên dịch ra mã máy, không
+		thay đổi. Có thể đặt cấu hình này nhiều chỗ trong source code.
+.set reorder	Trình dịch tự động chèn thêm các lệnh NOP cần thiết vào sau các
+		lệnh 2 chu kỳ. Có thể đặt cấu hình này nhiều chỗ trong source 
+		code.
+.ent <symbol>	Khai báo một thủ tục, chương trình con.
+--------------------------------------------------------------------------------
+Câu hỏi 1:
+--------------------------------------------------------------------------------
+Câu hỏi: Khai báo biến
+
+Giải pháp: Phải đặt sau và chỉ sau khai báo .data
+
+val:  .word  10, -14, 30   	# val là mảng có 3 số 32 bit. 
+dig:  .halfword 32,56		# dig là mảng có 2 số 16 bit.
+num:  .byte  0x01, 0x03		# num là mảng có 2 số 8 bit.
+str:  .ascii  "Hello"		# str là mảng có 5 ký tự. Không có null ở cuối.
+str:  .asciiz  "Hello"		# str là mảng có 5 ký tự + có null ở cuối
+arr:  .space 100		# để dành 100 byte trong địa chỉ bộ nhớ.	
+
+
+--------------------------------------------------------------------------------
+Câu hỏi 2:
+--------------------------------------------------------------------------------
+Câu hỏi: Tại sao khi chạy giả lập một phần mềm, chương trình đó cứ chạy mãi 
+không dừng?
+
+Nguyên nhân: BXL sẽ thực hiện các lệnh một cách tuần tự, mãi mãi, không bao 
+giờ kết thúc. Sau khi BXL thực hiện xong các lệnh của phần mềm đó, nó sẽ tiếp 
+tục thực hiện các lệnh bất kì ở ngay sau đoạn lệnh của phần mềm.
+
+Giải pháp: Khi lập trình, đặt một vòng lặp vô tận ở cuối phần mềm, để BXL bị
+treo tại đó. Như vậy sẽ dễ ghi nhận điểm kết thúc của phần mềm.
+	Lap:   j Lap
+
+--------------------------------------------------------------------------------
+Câu hỏi 3: 
+--------------------------------------------------------------------------------
+Câu hỏi: Tại sao khi viết phần mềm, đã có đoạn lệnh lặp vô hạn ở cuối
+	Lap:   j Lap
+mà BXL vẫn bỏ qua, thực hiện tiếp các lệnh phía sau vòng lặp.
+
+Nguyên nhân:  Lưu ý rằng lệnh nhảy j cần 2 chu kì thực hiện. Vì vậy chương
+trình được viết ở chế độ ".set noreorder" thì trình dịch sẽ không tự động chèn
+thêm lệnh NOP vào. Kết quả là phần chưowng trình phía sau lệnh nhảy j vẫn bị gọi
+ra, không mong đợi --> CÓ THỂ khiên chương trình bị polling một cách khó hiểu.
+
+Giải pháp: Phải viết thêm 1 lệnh NOP ngay sau vòng lặp vô hạn, hoặc bất cứ vòng
+lặp nào khác.
+       Lap:   j Lap
+              NOP
+
+--------------------------------------------------------------------------------
+Câu hỏi 4: 
+--------------------------------------------------------------------------------
+Câu hỏi: Chương trình có sử dụng các hàm thao tác với string, thường khởi động
+ở các lệnh lạ hoắc, không đúng với các lệnh đã lập trình? Tại sao vậy?
+
+
+Nguyên nhân: Có 2 yếu tố:
+ - Khi sử dụng các hàm xử lý chuỗi như print, thư viện các hàm này sẽ được nạp 
+   vào phần đầu tiên của một entry, sau đó mới tới nội dung phần mềm được viết
+ - Lệnh .globl <tên sym> cho biết symbol thuộc dạng toàn cục, có thể tham chiếu
+   tới từ một file mã nguồn khác. 
+Chúng ta thường nhầm rằng .globl sẽ gọi tới nhãn bên dưới, vì các ví dụ hay đặt
+tên nhãn là start, trùng với tên entry start. Thực tế, không phải nhãn, mà là
+phần đầu tiên của entry đó, chứa thư viện xử lý chuỗi, mởi được gọi ra đầu 
+tiên.
+      Ví dụ: 
+      .globl start
+      .ent start
+      start:
+      .end start
+thì lệnh bắt đầu sẽ nằm ở địa chỉ của các lệnh printf. Lý do là .global sẽ trỏ 
+tới đầu của đoạn start, chứ không phải nhãn start
+
+Giải pháp: Hãy đặt tên cho entry và nhãn khác nhau. 
+      .globl start
+      .ent main
+       printf
+      start:
+      .end main 	 
+
+--------------------------------------------------------------------------------
+Câu hỏi 6: 
+--------------------------------------------------------------------------------
+Câu hỏi: Các hàm để nhập kí tự từ bàn phím như getchar, có thể bị dừng lại để 
+thực hiện các ngắt hay không?
+
+Giải pháp: Các hàm nhập kí tự từ bán phím như getchar, vẫ có thể bị dừng để thực
+hiện ngắt như bình thường, ví dụ bị ngắt bởi Extimer. Tuy nhiên, nếu speed của 
+ExTimer quá nhanh thì chương trình sẽ luôn bị đắm chìm trong việc xử lý ngắt của
+ExTimer, nên không thể xử lý việc khác.
+
+Tuy nhiên, đã ghi nhận được lỗi của trình giả lập MIPSIT: nếu thời điểm gọi 
+hàm tự viêt và thời điểm gọi ngắt mà trùng nhau thì sẽ làm giá trị thanh ghi ra 
+bị thay đổi, nên trở về sai vi trí trong chương trình chính.
+
+--------------------------------------------------------------------------------
+Câu hỏi 7: 
+--------------------------------------------------------------------------------
+Câu hỏi: Tại sao khi hiển thị liên tiếp 2 chuỗi kí tự  bằng hàm printf lại
+hiện ra kí tự kỳ lạ.
+     .set noreorder
+     .data
+      text1: asciiz "text1"		// Giả sử ở đia chỉ 80020060
+      text2: asciiz "text2"		// Giả sử ở đia chỉ 80020070
+     .ent start  
+     start:
+      la a0,text1;
+      jal printf
+      la a0,text1;
+      jal printf
+     .end start
+
+Nguyên nhân:
+ - Do lệnh gọi jal cần 2 chu kì để thực hiện, nên lệnh la a0,text1 sẽ bị gọi 
+   luôn --> làm cho a0 bị thay đổi trước khi hàm printf kịp thực hiện.
+ - Lệnh la, là 2 lệnh kép trong đó lui thực hiện trước, addi/ori thực hiện sau
+   Lệnh lui sẽ gán a0 = 80020000, tức là xóa mất 16 bit thấp của a0 về 0, làm
+   cho a0 trỏ tới vùng địa chỉ lạ.
+
+Giải pháp:
+ - sau lệnh jal cần có thêm nop
+
+--------------------------------------------------------------------------------
+Câu hỏi 8: 
+--------------------------------------------------------------------------------
+Câu hỏi: Hiển thị đèn led như thế nào
+Nguyên nhân: Trong trình giả lập MIPIT, đèn 8 led và 8 switch được giả định gắn
+với địa chỉ 0xbf90000. Vì vậy mọi thao tác với led và switch được chuyển thành 
+thao tác với ngăn nhớ ở địa chỉ trên.
+
+Giải pháp: Chạy thử đoạn code minh họa sau
+#include <iregdef.h>
+#define SWITCHES 0xbf900000	// Dia chi cua ngan nho, ma ngan nho do tuong ung voi cong tac SWITCH
+#define LEDS     0xbf900000	// Dia chi cua ngan nho, ma ngan nho do tuong ung voi den led, trung dia chi SWITCH.
+
+.globl start
+.ent start
+start:  
+   li      t0, LEDS				// hoac dung    la, t0, LEDS    cung duoc
+   addi    s0, zero, 18				// Dua gia tri can hien thi len led		
+   sb      s0, 0x0(t0)     			// Nap gia tri can hien thi len led	
+.end start
+
+--------------------------------------------------------------------------------
+Câu hỏi 9: 
+--------------------------------------------------------------------------------
+Câu hỏi: Khi chạy pipeline với trình giả lập MipsPipeS, có hiện tượng
+  - Lệnh add, sub .. tính toán bị sai, lúc nào cũng bằng 0.
+  - Lệnh li, la không hoạt động, hoặc sai
+
+Nguyên nhân:
+  - Bộ giả lập MipsPipeS chưa hỗ trợ xử lý bất cứ một hazard nào. Bộ giả lập này
+    giúp ta thấy rõ các nhược điểm ban đầu của pipeline.
+  - Data Hazard sau xảy ra do chưa có cơ chế Forwarding.
+        sub $2, $1,$3      // Thanh ghi $2 bị thay đổi
+        and $12,$2,$5      // nhưng $2 chưa kịp nhận giá trị mới thì đã bị gọi ra
+  - Lệnh li, la là các giả lênh, gồm 2 lệnh thật ghép liên tiếp với nhau, tác
+    động lên cùng một thanh ghi đích. Bởi vậy, hiện thượng Data Hazard xảy ra.
+
+Giải pháp:
+  - Cách 1: Trong bộ giả lập MipsPipeXL, Forwarding Path đã được đưa vào nên 
+    Data Hazard trên được xử lý
+  - Cách 2: Bổ sung thêm các lệnh nop ở sau các lệnh làm thay đổi thanh ghi, để
+    than ghi kịp thời được chốt lại, nhận giá trị mới, trước khi tính toán tiếp
+        sub $2, $1,$3      // Thanh ghi $2 bị thay đổi
+        nop                // Đợi cho $2 chốt lại giá trị mới
+        and $12,$2,$5      // rồi mới đem $2 ra tính toán tiếp
+     Đối với lệnh li, la, không thể dùng được, mà hãy tự viết 2 lệnh thật bằng
+     tay và cũng chủ động thêm nop vào.
+
+--------------------------------------------------------------------------------
+Câu hỏi 10: 
+--------------------------------------------------------------------------------
+Câu hỏi: Khi chạy pipeline với trình giả lập MipsPipeS, có hiện tượng
+  - lệnh bne chay duoc, nhung jmp không chạy duoc
+
+Nguyên nhân:
+    Chưa rõ
+
+--------------------------------------------------------------------------------
+Câu hỏi 11: 
+--------------------------------------------------------------------------------
+Câu hỏi: Khi dịch một project, luôn xuất hiện thông báo lỗi 
+   main() function not found.
+
+Nguyên nhân: Môn học ICT4 chỉ giới hạn các bài tập lập trình bằng hợp ngữ, và 
+các bài tập này thường không có hàm main. Tuy nhiên, nếu người dùng không để ý,
+khi tạo một project mới để lập trình hợp ngữ, lại tạo ra một project C, nên
+mới có báo lỗi trên.
+
+Giải pháp:
+  Hãy tạo lại một project assembly mới, và attach các file mã nguồn đã viết 
+và project mới.
+
+--------------------------------------------------------------------------------
+Câu hỏi 12: 
+--------------------------------------------------------------------------------
+Câu hỏi: Khi dịch một project, luôn xuất hiện thông báo lỗi 
+   xgcc.exe: cannot specify -o with -c and multiple compilations
+
+Nguyên nhân: do đường dẫn bị sai, hoặc không hợp lệ. Trong MipsIT, đường dẫn 
+hợp lệ là đường dẫn không có kí tự trống. Ví dụ "C:\Program Files\MIPS" là không
+hợp lệ. "C:\MIPS" là hợp lệ.
+  - Có thể là đường dẫn thư mục mã nguồn sai. 
+  - Có thể là đường dẫn tới các thư viện của MIPSIT bị sai.
+
+Giải pháp:
+  - Kiểm tra lại đường dẫn của thư mục chứa project, và bảo đảm không có kí tự
+    trống.
+  - Trong MipsIT, mở File / Options... / Tab Directory. Trong tab này, ở mục 
+    <Show Directory>, lần lượt mở cả 3 loại thư mục là <Executable Files>, 
+    <Include Files> và <Library Files>. Kiểm tra đường dẫn của cả 3 loại thư mục
+    đó, xem có trỏ đúng vào thư mục có sẵn của bộ cài MIPSIT không, và có không
+    được chứa kí tự trống.
+  - Trong MipsIT, mở File / Options. Trong form này, xem textbox Compiler, và
+    bảo đảm rằng đường dẫn với compiler là đúng và không có kí tự trống.
+
+--------------------------------------------------------------------------------
+Câu hỏi 13: 
+--------------------------------------------------------------------------------
+Câu hỏi: Tạo sao khi mới mở MipsIT, luôn thấy thông báo lỗi
+   "Failed to open-port COM2"
+Sau đó, ứng dụng bị tắt luôn
+
+Nguyên nhân: Ứng dụng MipsIT luôn tự động kết nối với bộ xử lý MipsIT ngoài,
+qua cổng COM2. Tuy nhiên thực tế, chúng ta không có kết nối này, nên báo lỗi.
+
+Giải pháp: Ngay khi báo lỗi xuất hiện, hãy bấm ngay vào nút OK ở giữa màn hình.
+Lỗi sẽ bị bỏ qua, và tiếp tục làm việc bình thường
+
+--------------------------------------------------------------------------------
+Câu hỏi 14:
+--------------------------------------------------------------------------------
+Câu hỏi: Thưa thầy, trong bài toán thêm số lệnh nop tối thiểu vào chương
+trình để tránh các lỗi hazard:
+     Liệu có phải sau các lệnh rẽ nhánh BEQ hay BNE đều phải thêm 3
+lệnh nop không ạ, trong khi các lệnh lw, hoặc các trường hợp khác (
+khi xảy ra hazard dữ liệu mà phần cứng k hỗ trợ kỹ thuật FORWARDING)
+thì chỉ thêm 2 lệnh nop phía sau.
+    Và lý do là do lệnh rẽ nhánh có thời gian thực hiện bằng 2 chu kỳ
+phải không ạ?
+
+Trả lời: 
+Ý 1: Đúng. các lệnh rẽ nhánh Bxx đều phải thêm 3 nop. Vì phải đợi 3 
+     chu kì thì mới thực hiện xong 3 việc:
+        Quyết định xem có nhảy hay không
+        Tính ra địa chỉ cần nhảy tới
+        Cập nhật vào PC
+Ý 2: Sai: Vì còn phụ thuộc lệnh phía sau lw là lệnh gì
+         - Đợi 2 nop là đúng rồi, nhưng nếu
+         - Nếu lệnh ngay phía sau có toán hang nguồn là toán hang đích 
+		   của lw thì mới phải thêm nop
+         - Còn ngược lại thì không cần. 
+Ý 3: Hơi Sai: Lý do lệnh rẽ nhánh thực hiện trong 2 chu kì không phải như vậy. 
+     Do có xử lý FORWARDING nên lệnh rẽ nhánh mới cần thực hiện trong 2 chu kì, 
+	 vì FORWARDING chỉ giúp làm giảm đi 2 nop). Nếu không có FORWARDING thì
+ 	 phải phát biểu là  rẽ nhánh sẽ cần thực hiện trong 4 chu kì (1 chu kì của
+	 chính lệnh rẽ nhánh + 3 yêu cầu đợi nop)
+	 
+--------------------------------------------------------------------------------
+Câu hỏi 15
+--------------------------------------------------------------------------------	 
+Câu hỏi:  Khi thực hiện lệnh rẽ nhánh:  op    rs    rt    imm
+ Nếu điều kiện đúng:
+      PC <- (PC+4) + hằng số x 4
+Thầy giải thích hộ em chỗ này với ạ.	 
+
+Trả lời: PC = (PC + 4)  là quá trình tăng địa chỉ, để chuyển tới lệnh tiếp theo.
+Quá trình cộng này luôn được thực hiện, bất kể là rẽ nhánh hay không rẽ nhánh.
+Khi phát hiện phải rẽ nhánh, kết quả phép cộng sẽ được cộng thêm một lần nữa với 
+độ lệnh <hằng số> nằm ngay trong mã máy. <Hằng số> này phản ánh số lệnh chênh 
+lệch giữ lệnh hiện tại và lệnh cần nhảy đến, mà mỗi lệnh lại dài 4 byte → công 
+thức cuối cùng là phải cộng thêm  <hang số> x 4. 
+
+Em nhìn vào sơ đồ pipepline của MIPS sẽ thấy, đầu ra của thanh ghi PC đi ngang
+quá 2 bộ Add, đồng thời có một bộ shift2 (nhân 4) --> đưa tới đầu vào của PC 
+
