@@ -7,7 +7,7 @@
 	closeFrame: .asciiz "\n ----------------        ----------------        ----------------\n"
 	string: .space 100
 	openSquareBracket: .asciiz  "[[ "
-	closeSquareBracket: .asciiz  " ]]"
+	closeSquareBracket: .asciiz  "  ]]"
 	printSpace: .asciiz "      "
 	comma: .asciiz ","
 	slash: "|"
@@ -30,17 +30,17 @@ notout:	addi $t2, $t0, 0
 	addi $s1, $t0, 0
 	addi $s2, $0,0
 checkerror:lb $t3, 0($s1)			#check if the number of character is divisible by 8
-	addi $s1, $s1, 1
+	addi $s1, $s1, 1			#count the number of characters
 	addi $s2, $s2, 1
-	bne $t3, $0, checkerror
+	bne $t3, $0, checkerror			#when meet \0, go to check if the number of characters if satisfied or not
 	nop
 	addi $s2, $s2, -2			# for quit \n
 	addi $s3, $s2, 0
-subtract:add $s2, $s2, -8
+subtract:add $s2, $s2, -8			#subtract $s2 until $s2 is smaller than 8
 	blt $s2 ,8, test
 	j subtract
 	nop
-test: 	bne $s2, $0, error
+test: 	bne $s2, $0, error			#satisfied when $s2 is equal 0, if not print error mes and input again
 	nop 
 	j noterror
 	nop
@@ -52,7 +52,7 @@ error: 	li $v0, 4
 noterror:li $v0, 4
 	la $a0, openFrame
 	syscall
-line1:                                 		#right
+line1:                                 		#XOR block is right hand side
 block1line1:					
 	li $v0, 4
 	la $a0, slash
@@ -101,7 +101,7 @@ print4bitsblock2line1:
 	bne $t1, $0, print4bitsblock2line1
 	nop
 block3line1:
-	add $t7, $0, $0
+	add $t7, $0, $0				#print "       |       [[ "
 	li $v0, 4
 	la $a0, printSpace
 	syscall
@@ -120,8 +120,8 @@ print4bitsblock3line1:
 	lb $s6, 0($t3)
 	addi $t7, $t7, 1
 	addi $t2, $t2, 1
-	xor $s5, $s7, $s6
-	
+	xor $s5, $s7, $s6		#calculate the each value of 4 bits in XOR block
+					#print the result in hexadecimal number
 L1:	la $s3, digit_to_hex
 	la $s2, hexBuf + 4
 	add $s1, $0, $0
@@ -140,14 +140,14 @@ L1:	la $s3, digit_to_hex
 	add $s4, $s4, $s3		#s4 = 4 * s4 + address of digit_to_hex = position of element s4 in the array 
 	lw $s4, 0($s4)
 	sw $s4, 0($s2)
-	la $a0, hexBuf($s1) 
+	la $a0, hexBuf($s1) 		#print hexBuf
 	li $v0, 4
 	syscall
 	addi $s1, $s1, 4
 	la $a0, hexBuf($s1)
 	li $v0, 4
 	syscall
-	#reset hexBuf
+	#reset hexBuf to 0,0
 	la $a0, hexBuf
 	sw $0, 0($a0)
 	addi $a0, $a0, 4
@@ -167,12 +167,12 @@ endline1:li $v0, 4
 	syscall
 	addi $t0, $t0, 1
 	lb $t1, 0($t0)
-	beq $t1, $0, endAll
+	beq $t1, $0, endAll					#check if ending string, go to endAll label
 	nop
 	addi $t0, $t0, -1
 ####################################################
 line2:	li $v0, 4				#middle
-	la $a0, down
+	la $a0, down				#the same algorithm as the line 1 , just different position of the XOR block
 	syscall
 block1line2:	
 	li $v0, 4
@@ -409,17 +409,15 @@ endline3:add $t7, $0, $0
 	syscall
 	addi $t0, $t0, 1
 	lb $t1, 0($t0)
-	beq $t1, $0, endAll
+	beq $t1, $0, endAll			#if the string ends, go to endAll label and exit
 	nop
 	addi $t0, $t0, -1
 	li $v0, 4				#print \n
 	la $a0, down
 	syscall
-	j line1
+	j line1					#if not end, go to line 1
 	nop
 #################################################
 endAll: li $v0, 4
 	la $a0, closeFrame
 	syscall
-	
-exit:	
